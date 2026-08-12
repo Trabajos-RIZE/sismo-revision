@@ -3,106 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluación Post-Sismo Cali v1.0</title>
-    <!-- Vinculación del archivo de estilos CSS -->
+    <title>Evaluación Sismo Cali v2.5 - PDF Engine</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Librerías de Inyección Segura para Generación de PDF Offline -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Evaluación de Edificaciones</h1>
-        <p>Normativa Colombiana NSR-10 / Cali, Valle</p>
+        <h1>Evaluación de Edificaciones Post-Sismo</h1>
+        <p>Ecosistema de Triage Técnico - NSR-10 / AIS / FEMA</p>
     </header>
 
-    <div class="report-count" id="reportCount">Reportes guardados localmente: 0</div>
+    <div class="report-count" id="reportCount">Reportes almacenados localmente: 0</div>
 
     <div class="card">
         <form id="sismoForm">
-            <!-- 1. IDENTIFICACIÓN -->
-            <div class="form-group">
-                <label for="inspector">Nombre del Evaluador</label>
-                <input type="text" id="inspector" placeholder="Ej. Ing. Juan Pérez" required>
-            </div>
+            
+            <!-- SECCIÓN 1: DATOS INSTITUCIONALES -->
+            <fieldset>
+                <legend>1. Control e Identificación del Predio</legend>
+                <div class="form-group">
+                    <label for="idEvaluador">Nombre Completo del Evaluador en Campo:</label>
+                    <input type="text" id="idEvaluador" placeholder="Ej. Ing. Carlos Mendoza" required>
+                </div>
+                <div class="form-group">
+                    <label for="profesion">Profesión / Cargo:</label>
+                    <select id="profesion">
+                        <option value="Ingeniero Civil">Ingeniero Civil</option>
+                        <option value="Arquitecto">Arquitecto</option>
+                        <option value="Tecnologo en Construccion">Tecnólogo en Construcción</option>
+                        <option value="Inspector de Riesgos / Ciudadano">Inspector de Riesgos / Ciudadano</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="matricula">Matrícula Profesional (Opcional):</label>
+                    <input type="text" id="matricula" placeholder="Ej. 25202-XXXXX WVC">
+                </div>
+                <div class="form-group">
+                    <label for="catastro">Identificación Catastral (Si se conoce):</label>
+                    <input type="text" id="catastro" placeholder="Código de manzana o predio municipal">
+                </div>
+                <div class="form-group">
+                    <label for="direccion">Dirección Oficial de la Estructura:</label>
+                    <input type="text" id="direccion" placeholder="Ej. Carrera 4 # 2-10, Cali" required>
+                </div>
+                <div class="form-group">
+                    <label for="gps">Posicionamiento Satelital GPS:</label>
+                    <input type="text" id="gps" readonly required class="gps-field">
+                </div>
+            </fieldset>
+
+            <!-- SECCIÓN 2: CONFIGURACIÓN ESTRUCTURAL -->
+            <fieldset>
+                <legend>2. Configuración Estructural</legend>
+                <div class="form-group">
+                    <label for="sistema">Sistema Constructivo Predominante:</label>
+                    <select id="sistema" required>
+                        <option value="">-- Seleccione el Sistema Constructivo --</option>
+                        <option value="Porticos Concreto">Pórticos o Muros de Concreto Reforzado</option>
+                        <option value="Mamposteria Confinada">Mampostería Confinada (Ladrillo con amarres)</option>
+                        <option value="Mamposteria Informal">Mampostería No Reforzada / Autoconstrucción (Ladera)</option>
+                        <option value="Bahareque Tapia">Bahareque / Tapia Pisada / Adobe tradicional</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- SECCIÓN 3: PANELES DINÁMICOS FILTRADOS -->
+            <fieldset id="panelPatologias" class="hidden">
+                <legend id="tituloPatologia">3. Patologías y Daños Observados</legend>
+                
+                <!-- Sub-Panel A: Concreto -->
+                <div id="opcionesConcreto" class="panel-especifico hidden">
+                    <div class="form-group-check">
+                        <input type="checkbox" id="concreto_nudos">
+                        <label for="concreto_nudos">¿Concreto triturado o aplastado en las uniones viga-columna? (Falla Crítica)</label>
+                    </div>
+                    <div class="form-group-check">
+                        <input type="checkbox" id="concreto_columnas">
+                        <label for="concreto_columnas">¿Grietas inclinadas (a 45°) o acero de refuerzo visible/doblado en columnas?</label>
+                    </div>
+                    <div class="form-group-check">
+                        <input type="checkbox" id="concreto_muros">
+                        <label for="concreto_muros">¿Muros estructurales de concreto con grietas que los atraviesan completamente?</label>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel B: Mampostería Confinada -->
+                <div id="opcionesConfinada" class="panel-especifico hidden">
+                    <div class="form-group-check">
+                        <input type="checkbox" id="confina_muros_x">
+                        <label for="confina_muros_x">¿Grietas severas en forma de "X" o en escalera en los muros principales?</label>
+                    </div>
+                    <div class="form-group-check">
+                        <input type="checkbox" id="confina_separacion">
+                        <label for="confina_separacion">¿Separación o desprendimiento notable entre el muro de ladrillo y las columnas de amarre?</label>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel C: Mampostería Informal -->
+                <div id="opcionesInformal" class="panel-especifico hidden">
+                    <div class="form-group-check">
+                        <input type="checkbox" id="info_desplome">
+                        <label for="info_desplome">¿Desplome, inclinación o volcamiento evidente de las paredes exteriores?</label>
+                    </div>
+                    <div class="form-group-check">
+                        <input type="checkbox" id="info_grietas_anchas">
+                        <label for="info_grietas_anchas">¿Grietas muy anchas (más de 5 mm / grosor de un lápiz) o caída de ladrillos?</label>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel D: Bahareque / Tapia -->
+                <div id="opcionesBahareque" class="panel-especifico hidden">
+                    <div class="form-group-check">
+                        <input type="checkbox" id="baha_uniones">
+                        <label for="baha_uniones">¿Separación, desgarro o falla en las uniones de madera, guadua o amarres?</label>
+                    </div>
+                    <div class="form-group-check">
+                        <input type="checkbox" id="baha_perdida">
+                        <label for="baha_perdida">¿Pérdida masiva del pañete, desprendimiento de tierra o hundimiento de apoyos?</label>
+                    </div>
+                </div>
+
+                <!-- ALERTAS TRANSVERSALES -->
+                <div class="transversal-group">
+                    <p style="margin: 10px 0 5px 0; font-weight: bold; color: #475569; font-size: 0.85rem;">Alertas Críticas Globales:</p>
+                    <div class="form-group-check alert-accent">
+                        <input type="checkbox" id="g_colapso">
+                        <label for="g_colapso">¿Colapso parcial/total o inclinación general visible de la edificación?</label>
+                    </div>
+                    <div class="form-group-check alert-accent">
+                        <input type="checkbox" id="g_fema">
+                        <label for="g_fema">¿Indicadores FEMA? (Puertas trabadas por deformación estructural, sonidos de crujido)</label>
+                    </div>
+                    <div class="form-group-check alert-accent">
+                        <input type="checkbox" id="g_geotecnia">
+                        <label for="g_geotecnia">¿Riesgo del Suelo/Ladera? (Grietas en el terreno o amenaza de deslizamiento de talud)</label>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- SECCIÓN 4: AUDITORÍA DE FOTOS -->
+            <fieldset id="panelFotos" class="hidden">
+                <legend>4. Evidencias Fotográficas Obligatorias (Máx 3)</legend>
+                <div class="form-group">
+                    <label id="lblFoto1">Foto 1: Vista General de la Fachada</label>
+                    <input type="file" id="foto1" accept="image/*" capture="environment" required>
+                    <span id="wmFoto1" class="watermark-text"></span>
+                </div>
+                <div class="form-group">
+                    <label id="lblFoto2">Foto 2: Vista Ampliada del Elemento</label>
+                    <input type="file" id="foto2" accept="image/*" capture="environment" required>
+                    <span id="wmFoto2" class="watermark-text"></span>
+                </div>
+                <div class="form-group">
+                    <label id="lblFoto3">Foto 3: Detalle / Zoom del Daño</label>
+                    <input type="file" id="foto3" accept="image/*" capture="environment" required>
+                    <span id="wmFoto3" class="watermark-text"></span>
+                </div>
+            </fieldset>
 
             <div class="form-group">
-                <label for="direccion">Dirección o Referencia de la Estructura</label>
-                <input type="text" id="direccion" placeholder="Ej. Calle 5 # 10-25, Barrio San Antonio" required>
+                <label for="notas">Observaciones de Campo o Antecedentes Preexistentes:</label>
+                <textarea id="notas" rows="2" placeholder="Detalles relevantes para el informe impreso..."></textarea>
             </div>
 
-            <!-- 2. GEOLOCALIZACIÓN -->
-            <div class="form-group">
-                <label for="gps">Coordenadas GPS (Requerido para GIS)</label>
-                <input type="text" id="gps" placeholder="Calculando coordenadas..." readonly required>
-                <button type="button" class="btn-gps" id="btnGps">Obtener Ubicación Actual 📍</button>
-            </div>
-
-            <!-- 3. CARACTERIZACIÓN -->
-            <div class="form-group">
-                <label for="sistema">Sistema Estructural Predominante</label>
-                <select id="sistema" required>
-                    <option value="Porticos Concreto">Pórticos de Concreto Reforzado</option>
-                    <option value="Mamposteria Confinada">Mampostería Confinada (Formal)</option>
-                    <option value="Mamposteria Informal">Mampostería No Reforzada / Autoconstrucción (Ladera/Periferia)</option>
-                    <option value="Muros Tunel">Muros de Ductilidad Limitada (Túnel)</option>
-                </select>
-            </div>
-
-            <!-- 4. PATOLOGÍAS CRÍTICAS -->
-            <div class="form-group">
-                <label for="fallaCritica">Elementos Críticos (Columnas, Vigas, Nudos)</label>
-                <select id="fallaCritica" required>
-                    <option value="Ninguna">Ninguna / Fisuras estéticas menores</option>
-                    <option value="Grietas diagonales">Grietas diagonales a 45° en vigas o columnas</option>
-                    <option value="Concreto triturado">Concreto triturado en nudos / Acero expuesto</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="fallaMuros">Muros de Carga / Divisorios</label>
-                <select id="fallaMuros" required>
-                    <option value="Ninguna">Ninguna / Fisuras leves</option>
-                    <option value="Grietas X Moderadas">Grietas en forma de "X" moderadas (1 a 3mm)</option>
-                    <option value="Grietas X Severas">Grietas en "X" severas (Más de 3mm) o desprendimiento</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="fallaSuelo">Entorno y Geotecnia (Suelo/Talud)</label>
-                <select id="fallaSuelo" required>
-                    <option value="Estable">Suelo estable sin novedades</option>
-                    <option value="Grietas Suelo">Grietas en el suelo o asentamientos menores</option>
-                    <option value="Falla Talud">Deslizamiento de talud colindante / Inclinación del edificio</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="notas">Notas de Campo adicionales</label>
-                <textarea id="notas" rows="2" placeholder="Detalles específicos del daño..."></textarea>
-            </div>
-
-            <!-- SEMÁFORO DE RESPUESTA AUTOMÁTICA -->
-            <div class="form-group">
-                <label>Dictamen de Habitabilidad Automático (NSR-10)</label>
-                <div class="triage-box" id="triageDisplay">P1 - Habitable (Verde)</div>
-            </div>
-
-            <button type="submit" class="btn-submit">Guardar Reporte Localmente 💾</button>
-        </form>
-    </div>
-
-    <!-- PANEL DE CONTROL PARA QGIS -->
-    <div class="card panel-gis">
-        <label>Panel de Exportación Institucional</label>
-        <div class="actions-panel">
-            <button class="btn-action btn-geojson" id="btnExportar">Descargar Capa QGIS (.geojson)</button>
-            <button class="btn-action btn-clear" id="btnLimpiar">Borrar Datos Locales 🗑️</button>
-        </div>
-    </div>
-</div>
-
-<!-- Vinculación del archivo lógico JavaScript -->
-<script src="app.js"></script>
-</body>
-</html>
+            <!-- RESULTADO DEL DICTAMEN -->

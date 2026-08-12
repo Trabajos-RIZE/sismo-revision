@@ -1,155 +1,194 @@
-// Base de datos en memoria local persistente del dispositivo
 let baseDatosReportes = JSON.parse(localStorage.getItem('reportes_sismo_cali')) || [];
 
-// Inicialización de Eventos al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
     actualizarContador();
-    obtenerGPS();
+    obtenerGPSOpciones();
 
-    // Vinculación de oyentes de eventos a los elementos del formulario
-    document.getElementById('btnGps').addEventListener('click', obtenerGPS);
-    document.getElementById('fallaCritica').addEventListener('change', calcularHabitabilidad);
-    document.getElementById('fallaMuros').addEventListener('change', calcularHabitabilidad);
-    document.getElementById('fallaSuelo').addEventListener('change', calcularHabitabilidad);
-    document.getElementById('sismoForm').addEventListener('submit', guardarReporte);
-    document.getElementById('btnExportar').addEventListener('click', exportarGeoJSON);
-    document.getElementById('btnLimpiar').addEventListener('click', limpiarBaseDatos);
+    document.getElementById('sistema').addEventListener('change', manejarFiltroSistema);
+    document.getElementById('sismoForm').addEventListener('submit', procesarGuardado);
+    document.getElementById('btnExportar').addEventListener('click', exportarCapaGeoJSON);
+    document.getElementById('btnLimpiar').addEventListener('click', limpiarAlmacenamientoLocal);
+    
+    // NUEVO DISPARADOR: Motor de renderizado PDF
+    document.getElementById('btnGenerarPDF').addEventListener('click', generarInformePDF);
+
+    const triggers = ['g_colapso', 'g_fema', 'g_geotecnia', 'concreto_nudos', 'concreto_columnas', 'concreto_muros', 'confina_muros_x', 'confina_separacion', 'info_desplome', 'info_grietas_anchas', 'baha_uniones', 'baha_perdida'];
+    triggers.forEach(id => {
+        document.getElementById(id).addEventListener('change', calcularHabitabilidadAlgoritmo);
+    });
 });
 
-// Captura de coordenadas geográficas nativas del dispositivo móvil
-function obtenerGPS() {
+function obtenerGPSOpciones() {
     const gpsInput = document.getElementById('gps');
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                gpsInput.value = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            },
-            (error) => {
-                gpsInput.value = "3.4516, -76.5320"; // Coordenadas del centro de Cali por seguridad
-                console.warn("Acceso al GPS denegado o no disponible. Usando fallback urbano.");
-            },
+            (pos) => { gpsInput.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`; },
+            () => { gpsInput.value = "3.451649, -76.532049"; },
             { enableHighAccuracy: true }
         );
-    } else {
-        gpsInput.value = "GPS no soportado en este navegador.";
     }
 }
 
-// Algoritmo determinista: Evaluación de Daño según Matriz Estructural NSR-10
-function calcularHabitabilidad() {
-    const fCritica = document.getElementById('fallaCritica').value;
-    const fMuros = document.getElementById('fallaMuros').value;
-    const fSuelo = document.getElementById('fallaSuelo').value;
+function manejarFiltroSistema() {
+    const sistema = document.getElementById('sistema').value;
+    const panelPatologias = document.getElementById('panelPatologias');
+    const panelFotos = document.getElementById('panelFotos');
+    
+    document.querySelectorAll('.panel-especifico').forEach(p => p.classList.add('hidden'));
+    
+    if (!sistema) {
+        panelPatologias.classList.add('hidden');
+        panelFotos.classList.add('hidden');
+        document.getElementById('triageDisplay').innerText = "SELECCIONE UN SISTEMA CONSTRUCTIVO";
+        return;
+    }
+
+    panelPatologias.classList.remove('hidden');
+    panelFotos.classList.remove('hidden');
+
+    if (sistema === "Porticos Concreto") {
+        document.getElementById('opcionesConcreto').classList.remove('hidden');
+        configurarGuiasFotos("Concreto", "Registro General de la Fachada", "Vista Ampliada del Elemento", "Detalle / Zoom de la Patología");
+    } else if (sistema === "Mamposteria Confinada") {
+        document.getElementById('opcionesConfinada').classList.remove('hidden');
+        configurarGuiasFotos("Mampostería Confinada", "Registro General de la Fachada", "Vista Ampliada del Elemento", "Detalle / Zoom de la Patología");
+    } else if (sistema === "Mamposteria Informal") {
+        document.getElementById('opcionesInformal').classList.remove('hidden');
+        configurarGuiasFotos("Mampostería Informal", "Registro General de la Fachada", "Vista Ampliada del Elemento", "Detalle / Zoom de la Patología");
+    } else if (sistema === "Bahareque Tapia") {
+        document.getElementById('opcionesBahareque').classList.remove('hidden');
+        configurarGuiasFotos("Bahareque/Tapia", "Registro General de la Fachada", "Vista Ampliada del Elemento", "Detalle / Zoom de la Patología");
+    }
+    calcularHabitabilidadAlgoritmo();
+}
+
+function configurarGuiasFotos(sistema, g1, g2, g3) {
+    document.getElementById('lblFoto1').innerText = `Foto 1: ${g1} (${sistema})`;
+    document.getElementById('wmFoto1').innerText = `GUÍA REVISOR: Contexto completo de la edificación y entorno urbano.`;
+    document.getElementById('lblFoto2').innerText = `Foto 2: ${g2} (${sistema})`;
+    document.getElementById('wmFoto2').innerText = `GUÍA REVISOR: Perspectiva del elemento estructural o muro afectado.`;
+    document.getElementById('lblFoto3').innerText = `Foto 3: ${g3} (${sistema})`;
+    document.getElementById('wmFoto3').innerText = `GUÍA REVISOR: Acercamiento métrico a la fisura o fractura del material.`;
+}
+
+function calcularHabitabilidadAlgoritmo() {
+    const sistema = document.getElementById('sistema').value;
+    if (!sistema) return;
+
+    const colapso = document.getElementById('g_colapso').checked;
+    const fema = document.getElementById('g_fema').checked;
+    const geotecnia = document.getElementById('g_geotecnia').checked;
+    const cNudos = document.getElementById('concreto_nudos').checked;
+    const cColumnas = document.getElementById('concreto_columnas').checked;
+    const cMuros = document.getElementById('concreto_muros').checked;
+    const mX = document.getElementById('confina_muros_x').checked;
+    const mSepara = document.getElementById('confina_separacion').checked;
+    const iDesplome = document.getElementById('info_desplome').checked;
+    const iGrietas = document.getElementById('info_grietas_anchas').checked;
+    const bUniones = document.getElementById('baha_uniones').checked;
+    const bPerdida = document.getElementById('baha_perdida').checked;
+
     const display = document.getElementById('triageDisplay');
+    let dictamen = "🟢 HABITABLE (Verde)";
+    let colorBg = "#10b981";
 
-    let dictamen = "P1 - Habitable (Verde)";
-    let colorBg = "#10b981"; // Verde original de CSS Variables
-    let colorTxt = "#ffffff";
-
-    // Reglas jerárquicas de veto estructural
-    if (fCritica === "Concreto triturado" || fSuelo === "Falla Talud") {
-        dictamen = "🔴 P4 - Peligro de Colapso (Rojo)";
+    if (colapso || cNudos || iDesplome) {
+        dictamen = "🔴 PELIGRO DE COLAPSO / NO HABITABLE (Rojo)";
         colorBg = "#ef4444";
-    } else if (fCritica === "Grietas diagonales" || fMuros === "Grietas X Severas") {
-        dictamen = "🟠 P3 - No Habitable (Naranja)";
+    } else if (cColumnas || mX || iGrietas || bUniones || geotecnia) {
+        dictamen = "🟠 NO HABITABLE - EVALUACIÓN DETALLADA (Naranja)";
         colorBg = "#f97316";
-    } else if (fMuros === "Grietas X Moderadas" || fSuelo === "Grietas Suelo") {
-        dictamen = "🟡 P2 - Uso Restringido (Amarillo)";
+    } else if (fema || cMuros || mSepara || bPerdida) {
+        dictamen = "🟡 USO RESTRINGIDO - DAÑO MODERADO (Amarillo)";
         colorBg = "#f59e0b";
     }
 
     display.innerText = dictamen;
     display.style.backgroundColor = colorBg;
-    display.style.color = colorTxt;
+    display.style.color = "#ffffff";
 }
 
-// Persistencia local de los datos capturados (Funcionamiento Offline Total)
-function guardarReporte(e) {
+function optimizarYConvertirImagen(file) {
+    return new Promise((resolve) => {
+        if (!file || file.length === 0) resolve(null);
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 500;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.65));
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Variables temporales en memoria de sesión para capturar las últimas imágenes procesadas para el PDF
+let ultimaFoto1 = null, ultimaFoto2 = null, ultimaFoto3 = null;
+document.getElementById('foto1').addEventListener('change', async (e) => { ultimaFoto1 = await optimizarYConvertirImagen(e.target.files); });
+document.getElementById('foto2').addEventListener('change', async (e) => { ultimaFoto2 = await optimizarYConvertirImagen(e.target.files); });
+document.getElementById('foto3').addEventListener('change', async (e) => { ultimaFoto3 = await optimizarYConvertirImagen(e.target.files); });
+
+async function procesarGuardado(e) {
     e.preventDefault();
-
     const gpsRaw = document.getElementById('gps').value.split(',');
-    const latitud = parseFloat(gpsRaw[0]);
-    const longitud = parseFloat(gpsRaw[1]);
 
-    const nuevoReporte = {
-        id: "CALI-" + Date.now(),
-        fecha: new Date().toISOString(),
-        inspector: document.getElementById('inspector').value,
+    const registro = {
+        meta_id: "REPORTE-CALI-" + Date.now(),
+        meta_fecha: new Date().toLocaleString(),
+        evaluador: document.getElementById('idEvaluador').value,
+        cargo: document.getElementById('profesion').value,
+        tarjeta: document.getElementById('matricula').value || "NO SUMINISTRADA",
+        catastro: document.getElementById('catastro').value || "NO REGISTRADO",
         direccion: document.getElementById('direccion').value,
-        lat: latitud,
-        lon: longitud,
-        sistema_estructural: document.getElementById('sistema').value,
-        falla_critica: document.getElementById('fallaCritica').value,
-        falla_muros: document.getElementById('fallaMuros').value,
-        falla_suelo: document.getElementById('fallaSuelo').value,
-        notas: document.getElementById('notas').value,
-        resultado_triage: document.getElementById('triageDisplay').innerText
+        coor_lat: parseFloat(gpsRaw[0]),
+        coor_lon: parseFloat(gpsRaw[1]),
+        sistema: document.getElementById('sistema').value,
+        dictamen: document.getElementById('triageDisplay').innerText,
+        observaciones: document.getElementById('notas').value || "Sin observaciones.",
+        fotos: { f1: ultimaFoto1, f2: ultimaFoto2, f3: ultimaFoto3 }
     };
 
-    baseDatosReportes.push(nuevoReporte);
+    baseDatosReportes.push(registro);
     localStorage.setItem('reportes_sismo_cali', JSON.stringify(baseDatosReportes));
-    
     actualizarContador();
-    alert("¡Reporte guardado con éxito localmente en el dispositivo!");
-    
-    // Limpieza de campos de evaluación conservando credenciales técnicas del usuario
-    document.getElementById('direccion').value = '';
-    document.getElementById('notas').value = '';
-    document.getElementById('sistema').selectedIndex = 0;
-    document.getElementById('fallaCritica').selectedIndex = 0;
-    document.getElementById('fallaMuros').selectedIndex = 0;
-    document.getElementById('fallaSuelo').selectedIndex = 0;
-    calcularHabitabilidad();
+    alert("¡Registro estructural guardado con éxito localmente!");
 }
 
-function actualizarContador() {
-    document.getElementById('reportCount').innerText = `Reportes guardados localmente: ${baseDatosReportes.length}`;
-}
+// ARQUITECTURA DE GENERACIÓN DE INFORME TÉCNICO EN PDF DE 2 PÁGINAS (CLIENT-SIDE)
+function generarInformePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-// Procesamiento de datos al estándar de la OGC GeoJSON para Sistemas de Información Geográfica
-function exportarGeoJSON() {
-    if (baseDatosReportes.length === 0) {
-        alert("No hay datos guardados para exportar todavía.");
-        return;
-    }
+    // Captura de datos actuales directamente de la pantalla táctil
+    const evaluador = document.getElementById('idEvaluador').value || "[No Registrado]";
+    const cargo = document.getElementById('profesion').value;
+    const mp = document.getElementById('matricula').value || "NO SUMINISTRADA";
+    const direccion = document.getElementById('direccion').value || "[No Registrado]";
+    const catastro = document.getElementById('catastro').value || "NO REGISTRADO";
+    const gps = document.getElementById('gps').value;
+    const sistema = document.getElementById('sistema').value || "[No Seleccionado]";
+    const notas = document.getElementById('notas').value || "Sin observaciones particulares registradas en el sitio.";
+    const dictamen = document.getElementById('triageDisplay').innerText;
 
-    const geojson = {
-        type: "FeatureCollection",
-        features: baseDatosReportes.map(r => ({
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: [r.lon, r.lat] // El formato GeoJSON exige estrictamente [Longitud, Latitud]
-            },
-            properties: {
-                id_reporte: r.id,
-                fecha_hora: r.fecha,
-                evaluador: r.inspector,
-                direccion: r.direccion,
-                sistema_constructivo: r.sistema_estructural,
-                dano_columnas: r.falla_critica,
-                dano_muros: r.falla_muros,
-                dano_suelo: r.falla_suelo,
-                dictamen_final: r.resultado_triage,
-                observaciones: r.notas
-            }
-        }))
-    };
-
-    // Construcción del objeto blob e inyección temporal en el navegador para descarga física instantánea
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geojson, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `capa_sismo_cali_${Date.now()}.geojson`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-}
-
-function limpiarBaseDatos() {
-    if (confirm("¿Estás seguro de que deseas borrar todos los registros guardados en este celular? Asegúrate de haber exportado primero a QGIS.")) {
-        localStorage.removeItem('reportes_sismo_cali');
-        baseDatosReportes = [];
-        actualizarContador();
-    }
-}
+    // --- PÁGINA 1: MARCO DE TEXTO Y TABLAS TÉCNICAS ---
+    // Encabezado Centralizado Institucional
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("SISTEMA DE GESTIÓN DEL RIESGO DE DESASTRES", 105, 15, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("INFORME TÉCNICO PRELIMINAR DE INSPECCIÓN VISUAL POST-SISMO", 105, 21, { align: "center" });
+    doc.setFont("helvetica", "normal");
