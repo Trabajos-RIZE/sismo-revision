@@ -3,292 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluación Sismo Cali v3.0 - Emergencias</title>
+    <title>Evaluación Post-Sismo Cali v1.0</title>
+    <!-- Vinculación del archivo de estilos CSS -->
+    <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Librerías de Inyección para Generación de PDF Offline -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
-
-    <style>
-        :root {
-            --primary: #1e3a8a;
-            --background: #f1f5f9;
-            --card: #ffffff;
-            --text: #0f172a;
-            --green: #10b981;
-            --yellow: #eab308;
-            --orange: #f97316;
-            --red: #ef4444;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--background);
-            color: var(--text);
-            margin: 0;
-            padding: 10px;
-        }
-
-        .container {
-            max-width: 620px;
-            margin: 0 auto;
-        }
-
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        header h1 { margin: 0; font-size: 1.35rem; }
-        header p { margin: 4px 0 0 0; font-size: 0.8rem; opacity: 0.85; }
-
-        .report-count {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #475569;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        .card {
-            background: var(--card);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 12px;
-        }
-
-        .panel-gis {
-            background-color: #cbd5e1;
-            border: 2px solid #94a3b8;
-            margin-top: 15px;
-        }
-
-        .gis-warning {
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 6px;
-            border-left: 5px solid #1e3a8a;
-            font-size: 0.78rem;
-            color: #1e293b;
-            line-height: 1.35;
-            margin-bottom: 12px;
-        }
-
-        fieldset {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-            background-color: #f8fafc;
-        }
-
-        legend {
-            font-weight: bold;
-            color: var(--primary);
-            padding: 0 6px;
-            font-size: 0.9rem;
-        }
-
-        .form-group { margin-bottom: 12px; }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 4px;
-            font-size: 0.88rem;
-        }
-
-        input[type="text"], select, textarea {
-            width: 100%;
-            padding: 9px;
-            border: 1px solid #94a3b8;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 0.9rem;
-            background-color: #fff;
-        }
-
-        .gps-field {
-            background-color: #e2e8f0;
-            font-weight: bold;
-            color: #0f172a;
-        }
-
-        .form-group-check {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 8px;
-            background: #ffffff;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-        }
-
-        .form-group-check input[type="checkbox"] {
-            margin-top: 2px;
-            margin-right: 8px;
-            transform: scale(1.1);
-        }
-
-        .form-group-check label {
-            font-weight: 500;
-            font-size: 0.82rem;
-            cursor: pointer;
-            line-height: 1.3;
-        }
-
-        .alert-accent {
-            border-left: 4px solid var(--orange);
-            background-color: #fff7ed;
-        }
-
-        .watermark-text {
-            display: block;
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 2px;
-            font-style: italic;
-        }
-
-        .triage-box {
-            padding: 14px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-            border: 2px dashed #64748b;
-            background-color: #e2e8f0;
-            margin-top: 6px;
-            color: #0f172a;
-        }
-
-        .btn-submit {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .btn-pdf {
-            width: 100%;
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background-color: #dc2626;
-            margin-bottom: 12px;
-        }
-
-        .actions-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .btn-action {
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .btn-geojson { background-color: #15803d; }
-        .btn-clear { background-color: #991b1b; }
-
-        .hidden { display: none !important; }
-    </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Evaluación de Edificaciones Post-Sismo</h1>
-        <p>Ecosistema de Triage Técnico - NSR-10 / AIS / FEMA</p>
+        <h1>Evaluación de Edificaciones</h1>
+        <p>Normativa Colombiana NSR-10 / Cali, Valle</p>
     </header>
 
-    <div class="report-count" id="reportCount">Reportes almacenados localmente: 0</div>
+    <div class="report-count" id="reportCount">Reportes guardados localmente: 0</div>
 
     <div class="card">
         <form id="sismoForm">
-            
-            <!-- SECCIÓN 1: DATOS INSTITUCIONALES -->
-            <fieldset>
-                <legend>1. Control e Identificación del Predio</legend>
-                <div class="form-group">
-                    <label for="idEvaluador">Nombre Completo del Evaluador en Campo:</label>
-                    <input type="text" id="idEvaluador" placeholder="Ej. Ing. Carlos Mendoza" required>
-                </div>
-                <div class="form-group">
-                    <label for="profesion">Profesión / Cargo:</label>
-                    <select id="profesion">
-                        <option value="Ingeniero Civil">Ingeniero Civil</option>
-                        <option value="Arquitecto">Arquitecto</option>
-                        <option value="Otros Ingenieros">Otros Ingenieros</option>
-                        <option value="Inspector de Riesgos / Ciudadano">Inspector de Riesgos / Ciudadano</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="matricula">Matrícula Profesional (Opcional):</label>
-                    <input type="text" id="matricula" placeholder="Ej. 25202-XXXXX WVC">
-                </div>
-                <div class="form-group">
-                    <label for="catastro">Identificación Catastral (Si se conoce):</label>
-                    <input type="text" id="catastro" placeholder="Código de manzana o predio municipal">
-                </div>
-                <div class="form-group">
-                    <label for="direccion">Dirección Oficial de la Estructura:</label>
-                    <input type="text" id="direccion" placeholder="Ej. Carrera 4 # 2-10, Cali" required>
-                </div>
-                <div class="form-group">
-                    <label for="gps">Posicionamiento Satelital GPS (Automático):</label>
-                    <input type="text" id="gps" readonly required class="gps-field" placeholder="Buscando señal de satélites...">
-                </div>
-            </fieldset>
+            <!-- 1. IDENTIFICACIÓN -->
+            <div class="form-group">
+                <label for="inspector">Nombre del Evaluador</label>
+                <input type="text" id="inspector" placeholder="Ej. Ing. Juan Pérez" required>
+            </div>
 
-            <!-- SECCIÓN 2: CONFIGURACIÓN ESTRUCTURAL -->
-            <fieldset>
-                <legend>2. Configuración Estructural</legend>
-                <div class="form-group">
-                    <label for="sistema">Sistema Constructivo Predominante:</label>
-                    <select id="sistema" required>
-                        <option value="">-- Seleccione el Sistema Constructivo --</option>
-                        <option value="Porticos Concreto">Pórticos o Muros de Concreto Reforzado</option>
-                        <option value="Mamposteria Confinada">Mampostería Confinada (Ladrillo con amarres)</option>
-                        <option value="Mamposteria Informal">Mampostería No Reforzada / Autoconstrucción (Ladera)</option>
-                        <option value="Bahareque Tapia">Bahareque / Tapia Pisada / Adobe tradicional</option>
-                    </select>
-                </div>
-            </fieldset>
+            <div class="form-group">
+                <label for="direccion">Dirección o Referencia de la Estructura</label>
+                <input type="text" id="direccion" placeholder="Ej. Calle 5 # 10-25, Barrio San Antonio" required>
+            </div>
 
-            <!-- SECCIÓN 3: PANELES DINÁMICOS FILTRADOS -->
-            <fieldset id="panelPatologias" class="hidden">
-                <legend id="tituloPatologia">3. Patologías y Daños Observados</legend>
-                
-                <!-- Sub-Panel A: Concreto -->
-                <div id="opcionesConcreto" class="panel-especifico hidden">
-                    <div class="form-group-check">
-                        <input type="checkbox" id="concreto_nudos">
-                        <label for="concreto_nudos">¿Concreto triturado o aplastado en las uniones viga-columna? (Falla Crítica)</label>
-                    </div>
-                    <div class="form-group-check">
-                        <input type="checkbox" id="concreto_columnas">
+            <!-- 2. GEOLOCALIZACIÓN -->
+            <div class="form-group">
+                <label for="gps">Coordenadas GPS (Requerido para GIS)</label>
+                <input type="text" id="gps" placeholder="Calculando coordenadas..." readonly required>
+                <button type="button" class="btn-gps" id="btnGps">Obtener Ubicación Actual 📍</button>
+            </div>
+
+            <!-- 3. CARACTERIZACIÓN -->
+            <div class="form-group">
+                <label for="sistema">Sistema Estructural Predominante</label>
+                <select id="sistema" required>
+                    <option value="Porticos Concreto">Pórticos de Concreto Reforzado</option>
+                    <option value="Mamposteria Confinada">Mampostería Confinada (Formal)</option>
+                    <option value="Mamposteria Informal">Mampostería No Reforzada / Autoconstrucción (Ladera/Periferia)</option>
+                    <option value="Muros Tunel">Muros de Ductilidad Limitada (Túnel)</option>
+                </select>
+            </div>
+
+            <!-- 4. PATOLOGÍAS CRÍTICAS -->
+            <div class="form-group">
+                <label for="fallaCritica">Elementos Críticos (Columnas, Vigas, Nudos)</label>
+                <select id="fallaCritica" required>
+                    <option value="Ninguna">Ninguna / Fisuras estéticas menores</option>
+                    <option value="Grietas diagonales">Grietas diagonales a 45° en vigas o columnas</option>
+                    <option value="Concreto triturado">Concreto triturado en nudos / Acero expuesto</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="fallaMuros">Muros de Carga / Divisorios</label>
+                <select id="fallaMuros" required>
+                    <option value="Ninguna">Ninguna / Fisuras leves</option>
+                    <option value="Grietas X Moderadas">Grietas en forma de "X" moderadas (1 a 3mm)</option>
+                    <option value="Grietas X Severas">Grietas en "X" severas (Más de 3mm) o desprendimiento</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="fallaSuelo">Entorno y Geotecnia (Suelo/Talud)</label>
+                <select id="fallaSuelo" required>
+                    <option value="Estable">Suelo estable sin novedades</option>
+                    <option value="Grietas Suelo">Grietas en el suelo o asentamientos menores</option>
+                    <option value="Falla Talud">Deslizamiento de talud colindante / Inclinación del edificio</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="notas">Notas de Campo adicionales</label>
+                <textarea id="notas" rows="2" placeholder="Detalles específicos del daño..."></textarea>
+            </div>
+
+            <!-- SEMÁFORO DE RESPUESTA AUTOMÁTICA -->
+            <div class="form-group">
+                <label>Dictamen de Habitabilidad Automático (NSR-10)</label>
+                <div class="triage-box" id="triageDisplay">P1 - Habitable (Verde)</div>
+            </div>
+
+            <button type="submit" class="btn-submit">Guardar Reporte Localmente 💾</button>
+        </form>
+    </div>
+
+    <!-- PANEL DE CONTROL PARA QGIS -->
+    <div class="card panel-gis">
+        <label>Panel de Exportación Institucional</label>
+        <div class="actions-panel">
+            <button class="btn-action btn-geojson" id="btnExportar">Descargar Capa QGIS (.geojson)</button>
+            <button class="btn-action btn-clear" id="btnLimpiar">Borrar Datos Locales 🗑️</button>
+        </div>
+    </div>
+</div>
+
+<!-- Vinculación del archivo lógico JavaScript -->
+<script src="app.js"></script>
+</body>
+</html>
